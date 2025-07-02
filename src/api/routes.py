@@ -321,4 +321,56 @@ async def get_supported_languages():
         }
     except Exception as e:
         logger.error(f"Error getting supported languages: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get supported languages: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to get supported languages: {str(e)}")
+
+@router.post("/analyze-default-repo", response_model=List[AnalysisResult])
+async def analyze_default_repository(language: str = None, include_embeddings: bool = True):
+    """Analyze the default configured repository."""
+    try:
+        start_time = datetime.now()
+        
+        # Use configured default repository path
+        repo_path = cred_manager.git_repo_path
+        logger.info(f"Analyzing default repository: {repo_path}")
+        
+        # Analyze repository
+        results = []
+        supported_languages = [language] if language else parser_factory.get_supported_languages()
+        
+        for lang in supported_languages:
+            parser = parser_factory.get_parser(lang)
+            if parser:
+                repo_result = parser.parse_repository(repo_path)
+                if repo_result and repo_result['files']:
+                    results.extend(repo_result['files'])
+        
+        # Store in database if available
+        if database and database.is_connected():
+            for result in results:
+                database.store_analysis_result(result)
+        
+        # Create embeddings if requested
+        if include_embeddings and embedding_manager and results:
+            embeddings_data = embedding_manager.create_embeddings(results)
+            if embeddings_data:
+                embedding_manager.build_faiss_index(embeddings_data, cred_manager.get_vector_config()['index_path'])
+        
+        # Convert to response models
+        analysis_results = []
+        for result in results:
+            analysis_result = AnalysisResult(
+                file_path=result['file_path'],
+                language=result['language'],
+                functions=[FunctionInfo(**func) for func in result.get('functions', [])],
+                classes=[ClassInfo(**cls) for cls in result.get('classes', [])],
+                imports=[ImportInfo(**imp) for imp in result.get('imports', [])],
+                metrics=MetricsInfo(**result.get('metrics', {})),
+                analysis_timestamp=start_time
+            )
+            analysis_results.append(analysis_result)
+        
+        return analysis_results
+        
+    except Exception as e:
+        logger.error(f"Error analyzing default repository: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Default repository analysis failed: {str(e)}") 
