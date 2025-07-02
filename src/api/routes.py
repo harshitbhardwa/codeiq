@@ -35,11 +35,8 @@ try:
     
     # Try to load existing index
     if vector_config['index_path']:
-        try:
-            embedding_manager.load_faiss_index(vector_config['index_path'])
-            logger.info("Loaded existing vector index")
-        except Exception as e:
-            logger.warning(f"Could not load existing index: {str(e)}")
+        embedding_manager.load_faiss_index(vector_config['index_path'])
+        logger.info("Vector index initialization completed")
     
     # Initialize database
     db_config = cred_manager.get_db_credentials()

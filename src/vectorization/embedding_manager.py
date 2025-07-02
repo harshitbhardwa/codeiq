@@ -171,9 +171,15 @@ class EmbeddingManager:
         duration = time.time() - start_time
         logger.info(f"Built FAISS index with {len(embeddings_data)} vectors in {duration:.3f}s")
     
+    def create_empty_index(self):
+        """Create an empty FAISS index."""
+        self.index = faiss.IndexFlatIP(self.dimension)
+        self.code_metadata = []
+        logger.info("Created empty FAISS index")
+    
     def load_faiss_index(self, index_path: str):
         """
-        Load existing FAISS index.
+        Load existing FAISS index or create empty one if it doesn't exist.
         
         Args:
             index_path: Path to the FAISS index file
@@ -181,19 +187,30 @@ class EmbeddingManager:
         try:
             self.index_path = Path(index_path)
             
+            # Check if index file exists
+            if not self.index_path.exists():
+                logger.info(f"FAISS index file not found at {index_path}, creating empty index")
+                self.create_empty_index()
+                return
+            
             # Load FAISS index
             self.index = faiss.read_index(str(self.index_path))
             
             # Load metadata
             metadata_path = self.index_path.with_suffix('.pkl')
-            with open(metadata_path, 'rb') as f:
-                self.code_metadata = pickle.load(f)
+            if metadata_path.exists():
+                with open(metadata_path, 'rb') as f:
+                    self.code_metadata = pickle.load(f)
+            else:
+                logger.warning(f"Metadata file not found at {metadata_path}, using empty metadata")
+                self.code_metadata = []
             
             logger.info(f"Loaded FAISS index from {index_path} with {len(self.code_metadata)} vectors")
             
         except Exception as e:
             logger.error(f"Error loading FAISS index from {index_path}: {str(e)}")
-            raise
+            logger.info("Creating empty index as fallback")
+            self.create_empty_index()
     
     def search_similar_code(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """
