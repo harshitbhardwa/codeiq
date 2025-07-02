@@ -267,4 +267,13 @@ class JavaParser(BaseParser):
     
     def _get_default_file_patterns(self) -> List[str]:
         """Get default file patterns for Java files."""
-        return ['*.java'] 
+        return ['*.java']         return metrics
+    
+    def _get_default_file_patterns(self) -> List[str]:
+        """Get default file patterns for Java files."""
+        return ['*.java']
+        return metrics
+    
+    def _get_default_file_patterns(self) -> List[str]:
+        """Get default file patterns for Java files."""
+        return ['*.java']
