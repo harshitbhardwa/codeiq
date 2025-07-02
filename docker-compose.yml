@@ -1,0 +1,51 @@
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./repo:/app/repo
+    environment:
+      - GIT_REPO_PATH=/app/repo
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=code_analysis_user
+      - DB_PASSWORD=code_analysis_password
+      - DB_NAME=code_analysis_db
+      - API_HOST=0.0.0.0
+      - API_PORT=5000
+      - API_DEBUG=False
+      - VECTOR_DIMENSION=384
+      - FAISS_INDEX_PATH=/app/data/faiss_index
+      - LOG_LEVEL=INFO
+      - LOG_FILE=/app/logs/app.log
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - code-analysis-network
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: code_analysis_user
+      POSTGRES_PASSWORD: code_analysis_password
+      POSTGRES_DB: code_analysis_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    restart: unless-stopped
+    networks:
+      - code-analysis-network
+
+volumes:
+  postgres_data:
+
+networks:
+  code-analysis-network:
+    driver: bridge 
