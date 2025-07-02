@@ -5,8 +5,6 @@ FROM python:3.10-slim as builder
 RUN apt-get update && apt-get install -y \
     build-essential \
     git \
-    libopenblas-dev \
-    liblapack-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* /var/tmp/*
@@ -15,14 +13,15 @@ RUN apt-get update && apt-get install -y \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy and install requirements with aggressive cleanup
-COPY requirements.txt .
+# Copy and install minimal requirements with aggressive cleanup
+COPY requirements-minimal.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements-minimal.txt && \
     pip cache purge && \
     find /opt/venv -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true && \
     find /opt/venv -type f -name "*.pyc" -delete && \
-    find /opt/venv -type f -name "*.pyo" -delete
+    find /opt/venv -type f -name "*.pyo" -delete && \
+    find /opt/venv -name "*.so" -exec strip {} \; 2>/dev/null || true
 
 # Production stage
 FROM python:3.10-slim
@@ -31,8 +30,6 @@ FROM python:3.10-slim
 RUN apt-get update && apt-get install -y \
     git \
     curl \
-    libopenblas-base \
-    liblapack-base \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* /var/tmp/*
@@ -74,4 +71,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5000/ready || exit 1
 
 # Run the application
-CMD ["python", "app.py"]
+CMD ["python", "app.py"] 
