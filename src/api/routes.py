@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 import uuid
 from loguru import logger
@@ -41,12 +41,43 @@ try:
     # Initialize database
     db_config = cred_manager.get_db_credentials()
     database = PostgreSQLDatabase(db_config)
-    database.connect()
-    
+    if database.connect():
+        logger.info("Database connected successfully")
+    else:
+        logger.warning("Database connection failed")
+        database = None
 except Exception as e:
-    logger.error(f"Error initializing components: {str(e)}")
+    logger.error(f"Failed to initialize database: {str(e)}")
+    database = None
 
 router = APIRouter()
+
+def map_host_path_to_container(path: str) -> str:
+    """
+    Map host paths to container paths for Docker environment.
+    
+    Args:
+        path: Original path (potentially from host)
+        
+    Returns:
+        Mapped container path
+    """
+    # Define path mappings (host_path -> container_path)
+    path_mappings = {
+        '/root/retrofit': '/app/host-repo',
+        '/Users/harshit.bhardwaj/Documents/RZP-Online': '/app/host-repo',
+        # Add more mappings as needed
+    }
+    
+    # Check if the path matches any known host paths
+    for host_path, container_path in path_mappings.items():
+        if path == host_path or path.startswith(host_path + '/'):
+            mapped_path = path.replace(host_path, container_path)
+            logger.info(f"Mapped path: {path} -> {mapped_path}")
+            return mapped_path
+    
+    # If no mapping found, return original path
+    return path
 
 @router.get("/health", response_model=HealthCheck)
 async def health_check():
@@ -104,46 +135,50 @@ async def analyze_code(request: AnalysisRequest):
             return [analysis_result]
             
         elif request.repository_path:
-            # Analyze repository
-            results = []
-            supported_languages = [request.language] if request.language else parser_factory.get_supported_languages()
-            
-            for language in supported_languages:
-                parser = parser_factory.get_parser(language)
-                if parser:
-                    repo_result = parser.parse_repository(request.repository_path)
-                    if repo_result and repo_result['files']:
-                        results.extend(repo_result['files'])
-            
-            # Store in database if available
-            if database and database.is_connected():
-                for result in results:
-                    database.store_analysis_result(result)
-            
-            # Create embeddings if requested
-            if request.include_embeddings and embedding_manager and results:
-                embeddings_data = embedding_manager.create_embeddings(results)
-                if embeddings_data:
-                    embedding_manager.build_faiss_index(embeddings_data, cred_manager.get_vector_config()['index_path'])
-            
-            # Convert to response models
-            analysis_results = []
-            for result in results:
-                analysis_result = AnalysisResult(
-                    file_path=result['file_path'],
-                    language=result['language'],
-                    functions=[FunctionInfo(**func) for func in result.get('functions', [])],
-                    classes=[ClassInfo(**cls) for cls in result.get('classes', [])],
-                    imports=[ImportInfo(**imp) for imp in result.get('imports', [])],
-                    metrics=MetricsInfo(**result.get('metrics', {})),
-                    analysis_timestamp=start_time
-                )
-                analysis_results.append(analysis_result)
-            
-            return analysis_results
-            
+            # Use provided repository path with mapping
+            repo_path = map_host_path_to_container(request.repository_path)
         else:
-            raise HTTPException(status_code=400, detail="Either file_path or repository_path must be provided")
+            # Use configured default repository path
+            repo_path = cred_manager.git_repo_path
+            logger.info(f"Using configured repository path: {repo_path}")
+            
+        # Analyze repository
+        results = []
+        supported_languages = [request.language] if request.language else parser_factory.get_supported_languages()
+        
+        for language in supported_languages:
+            parser = parser_factory.get_parser(language)
+            if parser:
+                repo_result = parser.parse_repository(repo_path)
+                if repo_result and repo_result['files']:
+                    results.extend(repo_result['files'])
+        
+        # Store in database if available
+        if database and database.is_connected():
+            for result in results:
+                database.store_analysis_result(result)
+        
+        # Create embeddings if requested
+        if request.include_embeddings and embedding_manager and results:
+            embeddings_data = embedding_manager.create_embeddings(results)
+            if embeddings_data:
+                embedding_manager.build_faiss_index(embeddings_data, cred_manager.get_vector_config()['index_path'])
+        
+        # Convert to response models
+        analysis_results = []
+        for result in results:
+            analysis_result = AnalysisResult(
+                file_path=result['file_path'],
+                language=result['language'],
+                functions=[FunctionInfo(**func) for func in result.get('functions', [])],
+                classes=[ClassInfo(**cls) for cls in result.get('classes', [])],
+                imports=[ImportInfo(**imp) for imp in result.get('imports', [])],
+                metrics=MetricsInfo(**result.get('metrics', {})),
+                analysis_timestamp=start_time
+            )
+            analysis_results.append(analysis_result)
+        
+        return analysis_results
             
     except HTTPException:
         raise

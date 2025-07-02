@@ -7,9 +7,9 @@ services:
       - ./logs:/app/logs
       - ./data:/app/data
       - ./repo:/app/repo
-      - /root/retrofit:/app/retrofit
+      - /root/retrofit:/app/host-repo
     environment:
-      - GIT_REPO_PATH=/app/retrofit
+      - GIT_REPO_PATH=/app/host-repo
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=code_analysis_user
