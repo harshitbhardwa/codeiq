@@ -84,6 +84,11 @@ def test_components():
     print("🧪 Testing components...")
     
     try:
+        # Add current directory to Python path
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        
         # Test imports
         from src.config.credential_manager import CredentialManager
         from src.parsers.parser_factory import ParserFactory
