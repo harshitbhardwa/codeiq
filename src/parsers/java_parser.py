@@ -115,7 +115,7 @@ class JavaParser(BaseParser):
             result = {
                 'file_path': file_path,
                 'language': 'java',
-                'methods': self.extract_methods(tree),
+                'functions': self.extract_methods(tree),
                 'classes': self.extract_classes(tree),
                 'imports': self.extract_imports(tree),
                 'metrics': self.calculate_file_metrics(tree, source_code),
