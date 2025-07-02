@@ -31,8 +31,8 @@ FROM python:3.10-slim
 RUN apt-get update && apt-get install -y \
     git \
     curl \
-    libopenblas-base \
-    liblapack-base \
+    libopenblas0 \
+    liblapack3 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* /var/tmp/*
