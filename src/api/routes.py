@@ -324,20 +324,4 @@ async def get_supported_languages():
         }
     except Exception as e:
         logger.error(f"Error getting supported languages: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get supported languages: {str(e)}")
-
-@router.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    """Global exception handler."""
-    request_id = str(uuid.uuid4())
-    logger.error(f"Unhandled exception (request_id: {request_id}): {str(exc)}")
-    
-    return JSONResponse(
-        status_code=500,
-        content=ErrorResponse(
-            error="Internal Server Error",
-            message="An unexpected error occurred",
-            timestamp=datetime.now(),
-            request_id=request_id
-        ).dict()
-    ) 
+        raise HTTPException(status_code=500, detail=f"Failed to get supported languages: {str(e)}") 
