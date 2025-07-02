@@ -1,25 +1,40 @@
-FROM python:3.10-slim
+# Multi-stage build for better space efficiency
+FROM python:3.10-slim as builder
 
-# Set working directory
-WORKDIR /app
-
-# Install system dependencies and clean up in one layer
+# Install build dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
+    git \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy and install requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip cache purge
+
+# Production stage
+FROM python:3.10-slim
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y \
     git \
     curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* /var/tmp/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Install Python dependencies with cleanup
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip cache purge && \
-    rm -rf /root/.cache/pip/*
+# Set working directory
+WORKDIR /app
 
 # Copy application code
 COPY . .
@@ -31,7 +46,7 @@ RUN mkdir -p /app/logs /app/data /app/build
 ENV PYTHONPATH=/app
 ENV GIT_REPO_PATH=/app/repo
 ENV DB_HOST=localhost
-ENV DB_PORT=5432
+ENV DB_PORT=5433
 ENV DB_USER=user
 ENV DB_PASSWORD=password
 ENV DB_NAME=code_analysis
@@ -51,4 +66,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5000/ready || exit 1
 
 # Run the application
-CMD ["python", "app.py"] 
+CMD ["python", "app.py"]
