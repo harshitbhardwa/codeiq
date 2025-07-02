@@ -147,7 +147,7 @@ class JavaParser(BaseParser):
             result = {
                 'file_path': file_path,
                 'language': 'java',
-                'methods': self.extract_methods_regex(content),
+                'functions': self.extract_methods_regex(content),
                 'classes': self.extract_classes_regex(content),
                 'imports': self.extract_imports_regex(content),
                 'metrics': self.calculate_file_metrics_regex(content),
@@ -163,7 +163,7 @@ class JavaParser(BaseParser):
             return {
                 'file_path': file_path,
                 'language': 'java',
-                'methods': [],
+                'functions': [],
                 'classes': [],
                 'imports': [],
                 'metrics': {'total_lines': 0, 'code_lines': 0, 'comment_lines': 0, 'blank_lines': 0, 'average_complexity': 0},
