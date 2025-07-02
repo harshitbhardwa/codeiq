@@ -189,7 +189,7 @@ class JavaParser(BaseParser):
                     methods.append({
                         'name': method_name,
                         'position': {'start_line': i, 'start_column': match.start(), 'end_line': i, 'end_column': match.end()},
-                        'parameters': [],
+                        'parameters': [],  # Empty list of strings
                         'complexity': 1,
                         'body_text': ''
                     })
@@ -230,10 +230,11 @@ class JavaParser(BaseParser):
             matches = re.finditer(import_pattern, line)
             for match in matches:
                 import_name = match.group(1).strip()
+                import_type = "static" if "static" in line else "regular"
                 imports.append({
-                    'name': import_name,
+                    'text': line.strip(),
                     'position': {'start_line': i, 'start_column': match.start(), 'end_line': i, 'end_column': match.end()},
-                    'text': line.strip()
+                    'type': import_type
                 })
         
         return imports
@@ -307,7 +308,7 @@ class JavaParser(BaseParser):
                 method_data = {
                     'name': method_name,
                     'position': self.get_node_position(capture[0]),
-                    'parameters': self.extract_java_parameters(params_node, source_code) if params_node else [],
+                    'parameters': [f"{param['name']}: {param['type']}" for param in self.extract_java_parameters(params_node, source_code)] if params_node else [],
                     'complexity': self.calculate_complexity(capture[0].parent) if capture[0].parent else 1,
                     'body_text': self.get_node_text(body_node, source_code) if body_node else ""
                 }
@@ -382,10 +383,13 @@ class JavaParser(BaseParser):
         
         for capture in captures:
             import_name = self.get_node_text(capture[0], source_code)
+            # Get the full import line text
+            import_text = f"import {import_name};"
+            
             import_data = {
-                'name': import_name,
+                'text': import_text,
                 'position': self.get_node_position(capture[0]),
-                'text': f"import {import_name};"
+                'type': 'regular'
             }
             imports.append(import_data)
         
@@ -436,7 +440,7 @@ class JavaParser(BaseParser):
                     method_data = {
                         'name': method_name,
                         'position': self.get_node_position(child),
-                        'parameters': method_params or [],
+                        'parameters': [f"{param['name']}: {param['type']}" for param in method_params] if method_params else [],
                         'complexity': self.calculate_complexity(child),
                         'body_text': self.get_node_text(child, source_code)
                     }

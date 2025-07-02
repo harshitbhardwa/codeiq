@@ -108,8 +108,7 @@ class GoParser(BaseParser):
                 function_data = {
                     'name': function_name,
                     'position': self.get_node_position(capture[0]),
-                    'parameters': self.extract_go_parameters(params_node, source_code) if params_node else [],
-                    'return_types': self.extract_go_parameters(result_node, source_code) if result_node else [],
+                    'parameters': [f"{param['name']}: {param['type']}" for param in self.extract_go_parameters(params_node, source_code)] if params_node else [],
                     'complexity': self.calculate_complexity(capture[0].parent) if capture[0].parent else 1,
                     'body_text': self.get_node_text(body_node, source_code) if body_node else ""
                 }
@@ -187,11 +186,14 @@ class GoParser(BaseParser):
                         import_name = self.get_node_text(other_capture[0], source_code)
                         break
                 
+                # Create the import text
+                import_text = f"import {import_name + ' ' if import_name else ''}\"{import_path}\""
+                import_type = "named" if import_name else "regular"
+                
                 import_data = {
-                    'path': import_path,
-                    'name': import_name,
+                    'text': import_text,
                     'position': self.get_node_position(capture[0]),
-                    'text': f"import {import_name + ' ' if import_name else ''}\"{import_path}\""
+                    'type': import_type
                 }
                 imports.append(import_data)
         
