@@ -84,7 +84,7 @@ class JavaParser(BaseParser):
             )
         """)
         
-        captures = query.capture(tree.root_node)
+        captures = query.captures(tree.root_node)
         
         for capture in captures:
             if capture[1] == "method.name":
@@ -133,7 +133,7 @@ class JavaParser(BaseParser):
             )
         """)
         
-        captures = query.capture(tree.root_node)
+        captures = query.captures(tree.root_node)
         
         for capture in captures:
             if capture[1] == "class.name":
@@ -175,7 +175,7 @@ class JavaParser(BaseParser):
             )
         """)
         
-        captures = query.capture(tree.root_node)
+        captures = query.captures(tree.root_node)
         
         for capture in captures:
             import_name = self.get_node_text(capture[0], source_code)

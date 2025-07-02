@@ -84,7 +84,7 @@ class PythonParser(BaseParser):
             )
         """)
         
-        captures = query.capture(tree.root_node)
+        captures = query.captures(tree.root_node)
         
         for capture in captures:
             if capture[1] == "function.name":
@@ -126,7 +126,7 @@ class PythonParser(BaseParser):
             )
         """)
         
-        captures = query.capture(tree.root_node)
+        captures = query.captures(tree.root_node)
         
         for capture in captures:
             if capture[1] == "class.name":
@@ -163,11 +163,16 @@ class PythonParser(BaseParser):
         
         # Query for import statements
         query = self.language.query("""
-            (import_statement) @import
-            (import_from_statement) @import_from
+            (import_statement
+                name: (dotted_name) @import.name
+            )
+            (import_from_statement
+                module_name: (dotted_name) @import.module
+                name: (dotted_name) @import.name
+            )
         """)
         
-        captures = query.capture(tree.root_node)
+        captures = query.captures(tree.root_node)
         
         for capture in captures:
             import_text = self.get_node_text(capture[0], source_code)

@@ -85,7 +85,7 @@ class GoParser(BaseParser):
             )
         """)
         
-        captures = query.capture(tree.root_node)
+        captures = query.captures(tree.root_node)
         
         for capture in captures:
             if capture[1] == "function.name":
@@ -135,7 +135,7 @@ class GoParser(BaseParser):
             )
         """)
         
-        captures = query.capture(tree.root_node)
+        captures = query.captures(tree.root_node)
         
         for capture in captures:
             if capture[1] == "struct.name":
@@ -167,16 +167,14 @@ class GoParser(BaseParser):
         # Query for import statements
         query = self.language.query("""
             (import_declaration
-                (import_spec_list
-                    (import_spec
-                        path: (interpreted_string_literal) @import.path
-                        name: (package_identifier)? @import.name
-                    )
+                (import_spec
+                    path: (interpreted_string_literal) @import.path
+                    name: (package_identifier)? @import.name
                 )
             )
         """)
         
-        captures = query.capture(tree.root_node)
+        captures = query.captures(tree.root_node)
         
         for capture in captures:
             if capture[1] == "import.path":
