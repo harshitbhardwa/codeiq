@@ -113,6 +113,13 @@ class JavaParser(BaseParser):
         
         return methods
     
+    def extract_functions(self, tree: tree_sitter.Tree) -> List[Dict[str, Any]]:
+        """Extract function definitions from Java AST.
+        
+        In Java, functions are methods, so this delegates to extract_methods.
+        """
+        return self.extract_methods(tree)
+    
     def extract_classes(self, tree: tree_sitter.Tree) -> List[Dict[str, Any]]:
         """Extract class definitions from Java AST."""
         classes = []
